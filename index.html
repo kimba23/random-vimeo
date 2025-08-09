@@ -6,15 +6,15 @@
   <title>Random Vimeo — Victor</title>
   <style>
     :root { --bg:#0b0b0b; --fg:#f1f1f1; --accent:#6a5acd; }
-    * { box-sizing:border-box }
+    *{box-sizing:border-box}
     html,body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Arial,sans-serif}
-    .wrap{max-width:1200px;margin:28px auto;padding:16px}
+    .wrap{max-width:1300px;margin:28px auto;padding:16px}
     .topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .title{margin:0;font-weight:700;letter-spacing:.3px}
-    button{border:0;padding:10px 14px;border-radius:12px;cursor:pointer;background:var(--accent);color:white}
-    button:active{transform:scale(.98)}
+    .title{margin:0;font-weight:700}
+    button{border:0;padding:10px 14px;border-radius:12px;cursor:pointer;background:var(--accent);color:#fff}
     .comment{opacity:.9;margin-top:6px;font-style:italic}
     .hero{margin-top:14px}
+    /* HAZLO GRANDE: 1920x1080 ratio y ancho completo */
     .hero iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:16px;background:#000}
     .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
     .card{background:#111;border:1px solid #1d1d1d;border-radius:12px;padding:8px}
@@ -45,10 +45,8 @@
   </div>
 
   <script>
-    // Endpoint seguro (serverless) que ya montaste
     const API = '/api/vimeo-videos';
 
-    // Frases estilo Chirulí
     const QUOTES = [
       "Chirulí dice: si suena, rueda; si vibra, queda.",
       "Chirulí dice: arte to’ los días, con tumbao y sin permiso.",
@@ -64,13 +62,12 @@
 
     let VIDEOS = [];
 
-    function chiruliComment(extra) {
+    function chiruliComment(extra){
       const base = QUOTES[Math.floor(Math.random()*QUOTES.length)];
       chiruliEl.textContent = extra ? `${base} — ${extra}` : base;
     }
 
-    function vimeoSrc(id, opts = {}) {
-      // Autoplay silenciado y sin autopause para permitir varios a la vez
+    function vimeoSrc(id, opts={}){
       const p = new URLSearchParams({
         autoplay: opts.autoplay ? 1 : 0,
         muted: opts.muted ? 1 : 0,
@@ -80,48 +77,40 @@
       return `https://player.vimeo.com/video/${id}?${p.toString()}`;
     }
 
-    function uniqueSample(arr, n) {
+    function uniqueSample(arr,n){
       const copy = arr.slice();
-      for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-      }
+      for(let i=copy.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [copy[i],copy[j]]=[copy[j],copy[i]]; }
       return copy.slice(0, Math.min(n, copy.length));
     }
 
-    function renderFive() {
-      if (VIDEOS.length === 0) return;
-      const picks = uniqueSample(VIDEOS, 5);
-      const [main, ...rest] = picks;
+    function renderFive(){
+      if(!VIDEOS.length) return;
+      const picks = uniqueSample(VIDEOS,5);
+      const [main,...rest] = picks;
 
-      // Héroe grande
       heroEl.innerHTML = `
         <iframe
-          src="${vimeoSrc(main.id, { autoplay: 1, muted: 1 })}"
+          src="${vimeoSrc(main.id,{autoplay:1, muted:1})}"
           allow="autoplay; fullscreen; picture-in-picture"
           allowfullscreen
           loading="eager"
-        ></iframe>
-      `;
+        ></iframe>`;
       heroTitle.textContent = main.name || '';
 
-      // Cuatro abajo
       gridEl.innerHTML = '';
-      rest.forEach(v => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
+      rest.forEach(v=>{
+        const card=document.createElement('div');
+        card.className='card';
+        card.innerHTML=`
           <iframe
-            src="${vimeoSrc(v.id, { autoplay: 0, muted: 0 })}"
+            src="${vimeoSrc(v.id,{autoplay:0, muted:0})}"
             allow="autoplay; fullscreen; picture-in-picture"
             allowfullscreen
             loading="lazy"
           ></iframe>
-          <div class="meta">${v.name || 'Sin título'}</div>
-        `;
-        // Click en la tarjeta: subirlo al héroe
-        card.addEventListener('click', () => {
-          heroEl.querySelector('iframe').src = vimeoSrc(v.id, { autoplay: 1, muted: 1 });
+          <div class="meta">${v.name || 'Sin título'}</div>`;
+        card.addEventListener('click', ()=>{
+          heroEl.querySelector('iframe').src = vimeoSrc(v.id,{autoplay:1, muted:1});
           heroTitle.textContent = v.name || '';
           chiruliComment('cambiaste la corona.');
         });
@@ -131,27 +120,24 @@
       chiruliComment('cinco al hilo.');
     }
 
-    function shuffle(arr) {
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; }
       return arr;
     }
 
-    async function load() {
-      try {
-        const r = await fetch(API, { cache: 'no-store' });
+    async function load(){
+      try{
+        const r = await fetch(API,{cache:'no-store'});
         const data = await r.json();
-        VIDEOS = (data.items || []).filter(v => v?.id);
-        if (!VIDEOS.length) {
+        VIDEOS = (data.items||[]).filter(v=>v?.id);
+        if(!VIDEOS.length){
           heroEl.innerHTML = `<div style="padding:28px;border:1px dashed #333;border-radius:16px;">
-            No llegaron videos. Revisa tu álbum/usuario y permisos de embed en Vimeo.
+            No llegaron videos. Revisa álbum/usuario y permisos de embed en Vimeo.
           </div>`;
           return;
         }
         renderFive();
-      } catch (e) {
+      }catch(e){
         heroEl.innerHTML = `<div style="padding:28px;border:1px dashed #333;border-radius:16px;">
           Error cargando: ${e?.message || e}
         </div>`;
@@ -159,11 +145,7 @@
     }
 
     document.getElementById('btn-refresh').onclick = renderFive;
-    document.getElementById('btn-shuffle').onclick = () => {
-      shuffle(VIDEOS);
-      renderFive();
-      chiruliComment('barajita nueva.');
-    };
+    document.getElementById('btn-shuffle').onclick = ()=>{ shuffle(VIDEOS); renderFive(); chiruliComment('barajita nueva.'); };
 
     load();
   </script>
