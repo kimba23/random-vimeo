@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Random Vimeo — Victor</title>
+  <style>
+    html,body{margin:0;background:#0b0b0b;color:#f1f1f1;font-family:system-ui,Arial,sans-serif}
+    .wrap{max-width:960px;margin:40px auto;padding:16px}
+    .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    button{border:0;padding:10px 14px;border-radius:10px;cursor:pointer;background:#6a5acd;color:white}
+    button:active{transform:scale(0.98)}
+    .grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;max-height:60vh;overflow:auto}
+    .thumb{background:#151515;border-radius:10px;padding:8px}
+    .thumb img{width:100%;border-radius:8px;display:block}
+    .thumb small{opacity:.8}
+    iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:14px;background:#000}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <h1 style="margin:0;">🎲 Random Vimeo</h1>
+      <button id="btn-random">Otro random</button>
+      <button id="btn-shuffle">Shuffle lista</button>
+    </div>
+
+    <div class="grid" style="margin-top:16px;">
+      <div>
+        <div id="player-slot">
+          <div style="padding:24px;border:1px dashed #333;border-radius:14px;">
+            Cargando videos...
+          </div>
+        </div>
+        <h3 id="video-title" style="margin:12px 0 0 0;opacity:.9"></h3>
+      </div>
+
+      <div>
+        <h3 style="margin-top:0;">Lista</h3>
+        <div id="thumbs" class="thumbs"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Si usas álbum específico, puedes pasar ?album=ALBUM_ID en la URL del sitio,
+    // o setear VIMEO_ALBUM_ID en el backend.
+    const params = new URLSearchParams(location.search);
+    const album = params.get("album");
+    const API = album ? `/api/vimeo-videos?album=${album}` : `/api/vimeo-videos`;
+
+    let VIDEOS = [];
+
+    const slot = document.getElementById("player-slot");
+    const titleEl = document.getElementById("video-title");
+    const thumbsEl = document.getElementById("thumbs");
+
+    function embed(id, name) {
+      slot.innerHTML = `<iframe
+        src="https://player.vimeo.com/video/${id}?autoplay=1&muted=1&title=0&byline=0&portrait=0"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowfullscreen
+        loading="eager"
+      ></iframe>`;
+      titleEl.textContent = name || "";
+    }
+
+    function pickRandom() {
+      if (!VIDEOS.length) return;
+      const i = Math.floor(Math.random() * VIDEOS.length);
+      const v = VIDEOS[i];
+      embed(v.id, v.name);
+    }
+
+    function renderThumbs() {
+      thumbsEl.innerHTML = "";
+      VIDEOS.forEach((v) => {
+        const el = document.createElement("div");
+        el.className = "thumb";
+        el.innerHTML = `
+          <img src="${v.thumbnail || ""}" alt="${v.name}">
+          <small>${v.name || "Sin título"}</small>
+        `;
+        el.onclick = () => embed(v.id, v.name);
+        thumbsEl.appendChild(el);
+      });
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    async function load() {
+      try {
+        const r = await fetch(API, { cache: "no-store" });
+        const data = await r.json();
+        VIDEOS = (data.items || []).filter(v => v?.id);
+        if (!VIDEOS.length) {
+          slot.innerHTML = `<div style="padding:24px;border:1px dashed #333;border-radius:14px;">
+            No llegaron videos. Revisa permisos/álbum en Vimeo.
+          </div>`;
+          return;
+        }
+        renderThumbs();
+        pickRandom();
+      } catch (e) {
+        slot.innerHTML = `<div style="padding:24px;border:1px dashed #333;border-radius:14px;">
+          Error cargando: ${e?.message || e}
+        </div>`;
+      }
+    }
+
+    document.getElementById("btn-random").onclick = pickRandom;
+    document.getElementById("btn-shuffle").onclick = () => {
+      shuffle(VIDEOS);
+      renderThumbs();
+      pickRandom();
+    };
+
+    load();
+  </script>
+</body>
+</html>
